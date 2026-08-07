@@ -16,18 +16,20 @@ type IngestResult = {
 };
 
 type ReleventChunks = {
-  content:string;
-  score:string;
-}
+  message: string;
+  content: string;
+  answer: string;
+  score: string;
+};
 
 export default function Homepage() {
   const [result, setResult] = useState<IngestResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [question,setQuestion] = useState("");
-  const [releventChunks,setReleventChunks] = useState<ReleventChunks | []>([]);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [releventChunks, setReleventChunks] = useState<ReleventChunks | []>([]);
 
-  async function handleUpload(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleUpload(selectedFile: File) {
     try {
       setResult(null);
 
@@ -48,84 +50,77 @@ export default function Homepage() {
   }
 
   const chunk = result?.chunks;
-  const embeddingContent = result?.firstChunk
-  
-  console.log(
-    chunk,
-    "chunk",
-    result,
-    "result",
-    // result.chunks,
-    // "result cheunks",
-  );
+  const embeddingContent = result?.firstChunk;
 
-  async function handleAsk(e: React.SyntheticEvent<HTMLFormElement>){
-        e.preventDefault();
-        setReleventChunks([]);
+  async function handleAsk(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    console.log("Click");
 
-        const response = await fetch("/api/ask",{
-          method:"POST",
-          headers:{
-             "Content-Type": "application/json",  
-          },
-           body: JSON.stringify({
-          question: question,
-        }),
-        })
+    if (file === null) {
+      console.log("Clic2k");
 
-        console.log(response, "response");
-        const data = response.json();
+      return setAnswer("PDF upload cheythitt samsarikkunnathalle maryatha?");
+    }
+    setAnswer("");
+    setReleventChunks([]);
 
-        setReleventChunks(data.relevantChunks);
+    const response = await fetch("/api/ask", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question: question,
+      }),
+    });
+
+    console.log(response, "response");
+    const data = await response.json();
+
+    console.log("RESPONES FROM RAG : ", data);
+
+    setReleventChunks(data.relevantChunks);
+    setAnswer(data.answer);
   }
   return (
     <>
-      <h1>upload pdf</h1>
-      <form onSubmit={handleUpload}>
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => {
-            setFile(e.target.files?.[0] ?? null);
-          }}
-        />
+      <div style={{ background: "yellow", margin: 0 }}>
+        <h1 style={{ marginLeft: 520 }}>upload pdf</h1>
 
-        <button type="submit" style={{ marginLeft: 12 }}>
-          upload file
-        </button>
-      </form>
-      <form onSubmit={handleAsk}>
-        <input type="text"
-        value={question}
-        onChange={(e)=>setQuestion(e.target.value)}
-        placeholder="ask about uploaded doc"
+        {result ? (
+          <>
+            <h2>AI answer : </h2>
+            <h3>{answer}</h3>
+          </>
+        ) : (
+          <h3>{answer}</h3>
+        )}
 
-         />
-         <button type="submit"
-         >SEND</button>
-      </form> 
+        <form style={{ marginLeft: 420 }}>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0] ?? null;
 
-      {result && (
-        <>
-          <h2>result</h2>
-          <p>file : {result.fileName}</p>
-          <h3>Text Preview : {result.textPreview}</h3>
-          {/* <h4>{chunk.content}</h4> */}
-          <h4>{embeddingContent.embeddingPreview}</h4>
-        </>
-      )}
+              setFile(selectedFile);
 
-      {/* {releventChunks.length >0 &&(
-        <>
-        <h2>releventChunks</h2>
-
-        {releventChunks.map((chunk,index)=>{
-         <> <p>{chunk.content}</p>
-
-          <small>SIMILARITY SEARCH : {chunk.score.toFixed(3)}</small></>
-        })}
-        </>
-      )} */}
+              if (selectedFile) {
+                handleUpload(selectedFile);
+              }
+            }}
+          />
+        </form>
+        <form onSubmit={handleAsk} style={{ marginTop: 455, marginLeft: 465 }}>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="ask about uploaded doc"
+          />
+          <button type="submit">SEND</button>
+        </form>
+      </div>
     </>
   );
 }

@@ -6,7 +6,7 @@ export type TextChunk = {
 
 export function createChunks(
     text:string,
-    chunkSize = 500,
+    chunkSize = 800,
     overlapSize = 150,
 ):TextChunk[]{
     const cleanText = text.replace(/\s+/g, " ").trim();
@@ -50,6 +50,6 @@ export function createChunks(
             content:currentChunk
         })
     }
-
+    
     return chunks
 }
