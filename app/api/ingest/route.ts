@@ -20,9 +20,8 @@ export async function POST(request:Request){
 
       const arrayBuffer = await file.arrayBuffer();
      
-
       const extractedText = await extractTextFromPdf(arrayBuffer);
-
+                              
       const chunks = createChunks(extractedText);
      
       const embeddedChunks = [];

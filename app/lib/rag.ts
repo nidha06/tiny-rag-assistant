@@ -4,6 +4,13 @@ import { cosineSimilarity } from "./similarity";
 import { loadVectors } from "./vectorStore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+import { Document } from "@langchain/core/documents";
+import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+
+import { GeminiEmbeddings } from "./langChainEmbeddings";
+
+
+
 
 
 const genAi = new GoogleGenerativeAI(
@@ -13,24 +20,63 @@ const chatModel = genAi.getGenerativeModel({
     model:"gemini-3.5-flash",
 })
 
-export async function findReleventChunks(question:string){
-    const questionEmbedding = await createEmbedding(question);
+// export async function findReleventChunks(question:string){
+//     const questionEmbedding = await createEmbedding(question);
 
-    const storedChunks = await loadVectors();
+//     const storedChunks = await loadVectors();
 
-    const result = storedChunks.map((chunk)=>(
-        {
-        content:chunk.content,
-        score:cosineSimilarity(
-            questionEmbedding,
-            chunk.embedding
-        )
-    }
-    ));
-    return result
-           .sort((a,b)=>b.score - a.score)
-           .slice(0,3)
-};
+//     const result = storedChunks.map((chunk)=>(
+//         {
+//         content:chunk.content,
+//         score:cosineSimilarity(
+//             questionEmbedding,
+//             chunk.embedding
+//         )
+//     }
+//     ));
+//     return result
+//            .sort((a,b)=>b.score - a.score)
+//            .slice(0,3)
+// };
+
+export async function findReleventChunks(question: string) {
+  const storedChunks = await loadVectors();
+
+  if (storedChunks.length === 0) {
+    return [];
+  }
+
+ 
+  const embeddings = new GeminiEmbeddings({});
+
+  const vectorStore = new MemoryVectorStore(embeddings);
+
+  
+  await vectorStore.addVectors(
+    storedChunks.map((chunk) => chunk.embedding),
+    storedChunks.map(
+      (chunk) =>
+        new Document({
+          pageContent: chunk.content,
+          metadata: {
+            id: chunk.id,
+            chunkIndex: chunk.chunkIndex,
+          },
+        })
+    )
+  );
+
+  const results = await vectorStore.similaritySearchWithScore(
+    question,
+    3
+  );
+
+  return results.map(([document, score]) => ({
+    id: document.metadata.id,
+    content: document.pageContent,
+    score,
+  }));
+}
 
 export async function generateRagAnswer(question:string) {
      const relevantChunks = await findReleventChunks(question);

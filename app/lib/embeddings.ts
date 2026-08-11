@@ -14,7 +14,9 @@ export async function  createEmbedding(text: string): Promise<number[]> {
       model: "gemini-embedding-001",
       contents: text,
       config: {
-        taskType: "RETRIEVAL_DOCUMENT",
+        taskType:
+        //  "RETRIEVAL_DOCUMENT",
+         "RETRIEVAL_DOCUMENT",
         outputDimensionality: 1536,
       },
     });
