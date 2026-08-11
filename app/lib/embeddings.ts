@@ -6,39 +6,49 @@ if (!apiKey) {
   throw new Error("GEMINI_API_KEY is missing in .env.local");
 }
 
-const ai = new GoogleGenAI({apiKey});
+const ai = new GoogleGenAI({ apiKey });
 
-export async function createEmbedding(
-    text:string
-):Promise<number[]>{
+export async function  createEmbedding(text: string): Promise<number[]> {
+  try {
     const response = await ai.models.embedContent({
-        model:"gemini-embedding-001",
-        contents:text,
-        config:{
-            taskType:"RETRIEVAL_DOCUMENT",
-            outputDimensionality:768
-        }
+      model: "gemini-embedding-001",
+      contents: text,
+      config: {
+        taskType: "RETRIEVAL_DOCUMENT",
+        outputDimensionality: 1536,
+      },
     });
+
+   
 
     const embedding = response.embeddings?.[0]?.values;
 
-  if (!embedding) {
-    throw new Error("Embedding was not created");
-  }
+    if (!embedding) {
+      throw new Error("Embedding was not created");
+    }
 
     return embedding;
+  } catch (error) {
+    console.error("Embedding creation failed:", error);
 
-
-
-}
-export async function createQuestionEmbedding(
-        question:string
-    ):Promise<number[]>{
-        const cleanedQuestion = question.trim();
-
-          if (!cleanedQuestion) {
-    throw new Error("Question cannot be empty");
+    throw new Error("Could not create embedding");
   }
+}
 
-  return createEmbedding(cleanedQuestion);
+export async function createQuestionEmbedding(
+  question: string
+): Promise<number[]> {
+  try {
+    const cleanedQuestion = question.trim();
+
+    if (!cleanedQuestion) {
+      throw new Error("Question cannot be empty");
     }
+
+    return await createEmbedding(cleanedQuestion);
+  } catch (error) {
+    console.error("Question embedding failed:", error);
+
+    throw error;
+  }
+}

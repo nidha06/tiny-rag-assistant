@@ -1,7 +1,9 @@
+import { streamText } from "ai";
 import { createEmbedding } from "./embeddings";
 import { cosineSimilarity } from "./similarity";
 import { loadVectors } from "./vectorStore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+
 
 
 const genAi = new GoogleGenerativeAI(
@@ -59,11 +61,13 @@ ${question}
 
 Give a clear and short answer.`;
 
-const result = await chatModel.generateContent(prompt);
-console.log("LAST RESULT : ", result.response.text())
+const result = await chatModel.generateContentStream(prompt);
+// console.log("LAST RESULT : ", result.response.text());
+// console.log("RESULT :",result)
+console.log("STREAM RESULT : ", result.stream)
 
 return{
-    answer: result.response.text(),
+    stream: result.stream,
     relevantChunks,   
 }
 }

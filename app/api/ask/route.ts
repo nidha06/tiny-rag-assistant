@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { findReleventChunks, generateRagAnswer } from "../../lib/rag";
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -13,17 +15,46 @@ export async function POST(request: Request) {
       );
     }
 
-    const relevantChunks = await findReleventChunks(question);
+     const result = await generateRagAnswer(question);
+    const encoder = new TextEncoder();
 
-    const result = await generateRagAnswer(question);
-    console.log(result.answer, "reslut from ask route");
+    const responseStream = new ReadableStream({
+      async start(controller) {
+        try {
+          
+          if (!result.stream) {
+            controller.enqueue(encoder.encode(result.answer));
+            controller.close();
+            return;
+          }
 
-    return NextResponse.json({
-      question,
-      answer: result.answer,
-      relevantChunks,
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
+
+            if (text) {
+              controller.enqueue(encoder.encode(text));
+            }
+          }
+
+          controller.close();
+        } catch (error) {
+          controller.error(error);
+        }
+      },
+    });
+
+    return new Response(responseStream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "X-Accel-Buffering": "no",
+      },
     });
   } catch (error) {
     console.log(error);
+
+    return new Response("Could not generate answer", {
+      status: 500,
+    });
   }
 }
